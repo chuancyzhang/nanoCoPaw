@@ -14,7 +14,7 @@ class ModelInfo(BaseModel):
 
 
 class ProviderDefinition(BaseModel):
-    """Static definition of a provider (built-in or custom)."""
+    """Static definition of a provider."""
 
     id: str = Field(..., description="Provider identifier")
     name: str = Field(..., description="Human-readable provider name")
@@ -51,26 +51,6 @@ class ProviderSettings(BaseModel):
     )
 
 
-class CustomProviderData(BaseModel):
-    """Persisted definition + runtime config of a user-created custom provider.
-
-    All configuration lives here; custom providers do NOT have a
-    corresponding entry in the ``providers`` dict.
-    """
-
-    id: str = Field(..., description="Provider identifier (unique)")
-    name: str = Field(..., description="Human-readable provider name")
-    default_base_url: str = Field(default="")
-    api_key_prefix: str = Field(default="")
-    models: List[ModelInfo] = Field(default_factory=list)
-    base_url: str = Field(default="")
-    api_key: str = Field(default="")
-    chat_model: str = Field(
-        default="OpenAIChatModel",
-        description="Chat model class name (e.g., 'OpenAIChatModel')",
-    )
-
-
 class ModelSlotConfig(BaseModel):
     provider_id: str = Field(default="")
     model: str = Field(default="")
@@ -80,37 +60,19 @@ class ProvidersData(BaseModel):
     """Top-level structure of providers.json."""
 
     providers: Dict[str, ProviderSettings] = Field(default_factory=dict)
-    custom_providers: Dict[str, CustomProviderData] = Field(
-        default_factory=dict,
-    )
     active_llm: ModelSlotConfig = Field(default_factory=ModelSlotConfig)
 
     def get_credentials(self, provider_id: str) -> tuple[str, str]:
         """Return ``(base_url, api_key)`` for *provider_id*."""
-        cpd = self.custom_providers.get(provider_id)
-        if cpd is not None:
-            return cpd.base_url or cpd.default_base_url, cpd.api_key
         s = self.providers.get(provider_id)
         return (s.base_url, s.api_key) if s else ("", "")
 
     def is_configured(self, defn: "ProviderDefinition") -> bool:
-        """Custom providers need base_url; built-in providers need api_key.
-
-        Local providers are always considered configured (no credentials).
-
-        The special built-in provider ``ollama`` is also considered configured
-        without an API key, since it typically runs on localhost and uses an
-        unauthenticated OpenAI-compatible endpoint.
-        """
-        if defn.is_local or defn.id == "ollama":
-            return True
-        cpd = self.custom_providers.get(defn.id)
-        if cpd is not None:
-            return bool(cpd.base_url or cpd.default_base_url)
+        """Built-in providers need api_key."""
         s = self.providers.get(defn.id)
         if not s:
             return False
-        return bool(s.base_url) if defn.is_custom else bool(s.api_key)
+        return bool(s.api_key)
 
 
 class ProviderInfo(BaseModel):
@@ -133,7 +95,7 @@ class ActiveModelsInfo(BaseModel):
 
 
 class ResolvedModelConfig(BaseModel):
+    provider_id: str = Field(default="")
     model: str = Field(default="")
     base_url: str = Field(default="")
     api_key: str = Field(default="")
-    is_local: bool = Field(default=False)

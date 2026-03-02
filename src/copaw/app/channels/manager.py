@@ -180,23 +180,14 @@ class ChannelManager:
                 )
             if ch_cfg is None:
                 continue
-            if key == "console":
-                channels.append(
-                    ch_cls.from_config(
-                        process,
-                        ch_cfg,
-                        on_reply_sent=on_last_dispatch,
-                    ),
-                )
-            else:
-                channels.append(
-                    ch_cls.from_config(
-                        process,
-                        ch_cfg,
-                        on_reply_sent=on_last_dispatch,
-                        show_tool_details=show_tool_details,
-                    ),
-                )
+            channels.append(
+                ch_cls.from_config(
+                    process,
+                    ch_cfg,
+                    on_reply_sent=on_last_dispatch,
+                    show_tool_details=show_tool_details,
+                ),
+            )
         return cls(channels)
 
     def _make_enqueue_cb(self, channel_id: str) -> Callable[[Any], None]:

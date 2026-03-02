@@ -9,6 +9,7 @@ Example:
     >>> model, formatter = create_model_and_formatter()
 """
 
+import inspect
 import logging
 import os
 from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Type
@@ -16,8 +17,10 @@ from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Type
 from agentscope.formatter import FormatterBase, OpenAIChatFormatter
 from agentscope.model import ChatModelBase, OpenAIChatModel
 
-from .utils.tool_message_utils import _sanitize_tool_messages
-from ..local_models import create_local_chat_model
+from .utils.tool_message_utils import (
+    _sanitize_deepseek_reasoning,
+    _sanitize_tool_messages,
+)
 from ..providers import (
     get_active_llm_config,
     get_chat_model_class,
@@ -56,6 +59,8 @@ def _get_formatter_for_chat_model(
 
 def _create_file_block_support_formatter(
     base_formatter_class: Type[FormatterBase],
+    *,
+    deepseek: bool = False,
 ) -> Type[FormatterBase]:
     """Create a formatter class with file block support.
 
@@ -78,6 +83,8 @@ def _create_file_block_support_formatter(
             This prevents OpenAI API errors from improperly paired
             tool messages.
             """
+            if deepseek:
+                msgs = _sanitize_deepseek_reasoning(msgs)
             msgs = _sanitize_tool_messages(msgs)
             return await super()._format(msgs)
 
@@ -187,7 +194,8 @@ def create_model_and_formatter(
     model, chat_model_class = _create_model_instance(llm_cfg)
 
     # Create the formatter based on chat_model_class
-    formatter = _create_formatter_instance(chat_model_class)
+    provider_id = llm_cfg.provider_id if llm_cfg else "openai"
+    formatter = _create_formatter_instance(chat_model_class, provider_id)
 
     return model, formatter
 
@@ -203,16 +211,6 @@ def _create_model_instance(
     Returns:
         Tuple of (model_instance, chat_model_class)
     """
-    # Handle local models
-    if llm_cfg and llm_cfg.is_local:
-        model = create_local_chat_model(
-            model_id=llm_cfg.model,
-            stream=True,
-            generate_kwargs={"max_tokens": None},
-        )
-        # Local models use OpenAIChatModel-compatible formatter
-        return model, OpenAIChatModel
-
     # Handle remote models - determine chat_model_class from provider config
     chat_model_class = _get_chat_model_class_from_provider()
 
@@ -262,31 +260,40 @@ def _create_remote_model_instance(
     """
     # Get configuration from llm_cfg or fall back to environment
     if llm_cfg and llm_cfg.api_key:
-        model_name = llm_cfg.model or "qwen3-max"
+        model_name = llm_cfg.model or ""
         api_key = llm_cfg.api_key
         base_url = llm_cfg.base_url
+        provider_id = llm_cfg.provider_id
     else:
         logger.warning(
-            "No active LLM configured — "
-            "falling back to DASHSCOPE_API_KEY env var",
+            "No active LLM configured — falling back to OPENAI_API_KEY env",
         )
-        model_name = "qwen3-max"
-        api_key = os.getenv("DASHSCOPE_API_KEY", "")
-        base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        model_name = "gpt-4o-mini"
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        base_url = "https://api.openai.com/v1"
+        provider_id = "openai"
+
+    generate_kwargs: dict[str, object] = {}
+    if provider_id == "deepseek" and model_name != "deepseek-reasoner":
+        generate_kwargs = {"extra_body": {"thinking": {"type": "enabled"}}}
 
     # Instantiate model
-    model = chat_model_class(
-        model_name,
-        api_key=api_key,
-        stream=True,
-        client_kwargs={"base_url": base_url},
-    )
+    init_kwargs = {
+        "api_key": api_key,
+        "stream": True,
+        "client_kwargs": {"base_url": base_url},
+    }
+    params = set(inspect.signature(chat_model_class.__init__).parameters)
+    if "generate_kwargs" in params and generate_kwargs:
+        init_kwargs["generate_kwargs"] = generate_kwargs
+    model = chat_model_class(model_name, **init_kwargs)
 
     return model
 
 
 def _create_formatter_instance(
     chat_model_class: Type[ChatModelBase],
+    provider_id: str,
 ) -> FormatterBase:
     """Create a formatter instance for the given chat model class.
 
@@ -302,6 +309,7 @@ def _create_formatter_instance(
     base_formatter_class = _get_formatter_for_chat_model(chat_model_class)
     formatter_class = _create_file_block_support_formatter(
         base_formatter_class,
+        deepseek=provider_id == "deepseek",
     )
     return formatter_class()
 

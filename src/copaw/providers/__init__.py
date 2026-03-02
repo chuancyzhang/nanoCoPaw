@@ -3,7 +3,6 @@
 
 from .models import (
     ActiveModelsInfo,
-    CustomProviderData,
     ModelInfo,
     ModelSlotConfig,
     ProviderDefinition,
@@ -17,18 +16,12 @@ from .registry import (
     get_chat_model_class,
     get_provider,
     get_provider_chat_model,
-    is_builtin,
     list_providers,
-    sync_local_models,
 )
 from .store import (
-    add_model,
-    create_custom_provider,
-    delete_custom_provider,
     get_active_llm_config,
     load_providers_json,
     mask_api_key,
-    remove_model,
     save_providers_json,
     set_active_llm,
     update_provider_settings,
@@ -36,7 +29,6 @@ from .store import (
 
 __all__ = [
     "ActiveModelsInfo",
-    "CustomProviderData",
     "ModelInfo",
     "ModelSlotConfig",
     "ProviderDefinition",
@@ -48,16 +40,10 @@ __all__ = [
     "get_chat_model_class",
     "get_provider",
     "get_provider_chat_model",
-    "is_builtin",
     "list_providers",
-    "sync_local_models",
-    "add_model",
-    "create_custom_provider",
-    "delete_custom_provider",
     "get_active_llm_config",
     "load_providers_json",
     "mask_api_key",
-    "remove_model",
     "save_providers_json",
     "set_active_llm",
     "update_provider_settings",

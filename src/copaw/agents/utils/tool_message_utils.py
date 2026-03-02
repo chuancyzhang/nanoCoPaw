@@ -356,6 +356,38 @@ def _sanitize_tool_messages(msgs: list) -> list:
     return _remove_unpaired_tool_messages(_reorder_tool_results(msgs))
 
 
+def _sanitize_deepseek_reasoning(msgs: list) -> list:
+    def _has_tool_calls(msg) -> bool:
+        tool_calls = None
+        if isinstance(msg, dict):
+            tool_calls = msg.get("tool_calls")
+            content = msg.get("content")
+        else:
+            tool_calls = getattr(msg, "tool_calls", None)
+            content = getattr(msg, "content", None)
+        if tool_calls:
+            return True
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    return True
+        return False
+
+    changed = False
+    result: list = []
+    for msg in msgs:
+        if isinstance(msg, dict):
+            if "reasoning_content" in msg and not _has_tool_calls(msg):
+                msg["reasoning_content"] = None
+                changed = True
+        else:
+            if hasattr(msg, "reasoning_content") and not _has_tool_calls(msg):
+                setattr(msg, "reasoning_content", None)
+                changed = True
+        result.append(msg)
+    return result if changed else msgs
+
+
 def _truncate_text(text: str, max_length: int) -> str:
     """Truncate text to max length, keeping head and tail portions.
 

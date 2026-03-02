@@ -1,12 +1,68 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
-from ..constant import HEARTBEAT_FILE, JOBS_FILE, CHATS_FILE, WORKING_DIR
-from .config import Config, HeartbeatConfig, LastApiConfig, LastDispatchConfig
+from ..constant import HEARTBEAT_FILE, WORKING_DIR
+from .config import (
+    Config,
+    HeartbeatConfig,
+    ChannelConfig,
+    DingTalkConfig,
+    FeishuConfig,
+    QQConfig,
+    DiscordConfig,
+    IMessageChannelConfig,
+    MCPConfig,
+)
+
+
+def _build_static_config() -> Config:
+    channels = ChannelConfig(
+        imessage=IMessageChannelConfig(
+            enabled=False,
+            bot_prefix="[BOT] ",
+            db_path="~/Library/Messages/chat.db",
+            poll_sec=1.0,
+        ),
+        discord=DiscordConfig(
+            enabled=False,
+            bot_prefix="[BOT] ",
+            bot_token="",
+            http_proxy="",
+            http_proxy_auth="",
+        ),
+        dingtalk=DingTalkConfig(
+            enabled=False,
+            bot_prefix="[BOT] ",
+            client_id="",
+            client_secret="",
+            media_dir="~/.copaw/media",
+        ),
+        feishu=FeishuConfig(
+            enabled=False,
+            bot_prefix="[BOT] ",
+            app_id="",
+            app_secret="",
+            encrypt_key="",
+            verification_token="",
+            media_dir="~/.copaw/media",
+        ),
+        qq=QQConfig(
+            enabled=False,
+            bot_prefix="",
+            app_id="",
+            client_secret="",
+        ),
+    )
+    return Config(
+        channels=channels,
+        mcp=MCPConfig(clients={}),
+    )
+
+
+_RUNTIME_CONFIG = _build_static_config()
 
 
 def get_config_path() -> Path:
@@ -20,35 +76,16 @@ def get_heartbeat_query_path() -> Path:
 
 
 def load_config(config_path: Optional[Path] = None) -> Config:
-    """Load config from file. Returns default Config if file is missing."""
-    if config_path is None:
-        config_path = get_config_path()
-    if not config_path.is_file():
-        return Config()
-    with open(config_path, "r", encoding="utf-8") as file:
-        data = json.load(file)
-    # Backward compat: top-level last_api_host / last_api_port -> last_api
-    if "last_api_host" in data or "last_api_port" in data:
-        la = data.setdefault("last_api", {})
-        if "host" not in la and "last_api_host" in data:
-            la["host"] = data.get("last_api_host")
-        if "port" not in la and "last_api_port" in data:
-            la["port"] = data.get("last_api_port")
-    return Config.model_validate(data)
+    return _RUNTIME_CONFIG.model_copy(deep=True)
+
+
+def set_runtime_config(config: Config) -> None:
+    global _RUNTIME_CONFIG
+    _RUNTIME_CONFIG = config.model_copy(deep=True)
 
 
 def save_config(config: Config, config_path: Optional[Path] = None) -> None:
-    """Save the config to the file."""
-    if config_path is None:
-        config_path = get_config_path()
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(config_path, "w", encoding="utf-8") as file:
-        json.dump(
-            config.model_dump(mode="json", by_alias=True),
-            file,
-            indent=2,
-            ensure_ascii=False,
-        )
+    return None
 
 
 def get_heartbeat_config() -> HeartbeatConfig:
@@ -57,41 +94,3 @@ def get_heartbeat_config() -> HeartbeatConfig:
     hb = config.agents.defaults.heartbeat
     return hb if hb is not None else HeartbeatConfig()
 
-
-def update_last_dispatch(channel: str, user_id: str, session_id: str) -> None:
-    """Persist last user-reply dispatch target (user send+reply only)."""
-    config = load_config()
-    config.last_dispatch = LastDispatchConfig(
-        channel=channel,
-        user_id=user_id,
-        session_id=session_id,
-    )
-    save_config(config)
-
-
-def read_last_api() -> Optional[Tuple[str, int]]:
-    """Read last API host/port from config (via config load/save)."""
-    config = load_config()
-    host = config.last_api.host
-    port = config.last_api.port
-    if not host or port is None:
-        return None
-    return host, port
-
-
-def write_last_api(host: str, port: int) -> None:
-    """Write last API host/port to config (via config load/save)."""
-    config = load_config()
-    config.last_api = LastApiConfig(host=host, port=port)
-    save_config(config)
-
-
-def get_jobs_path() -> Path:
-    """Return cron jobs.json path."""
-
-    return (WORKING_DIR / JOBS_FILE).expanduser()
-
-
-def get_chats_path() -> Path:
-    """Return chats.json path."""
-    return (WORKING_DIR / CHATS_FILE).expanduser()

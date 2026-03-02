@@ -52,12 +52,6 @@ class QQConfig(BaseChannelConfig):
     client_secret: str = ""
 
 
-class ConsoleConfig(BaseChannelConfig):
-    """Console channel: prints agent responses to stdout."""
-
-    enabled: bool = True
-
-
 class ChannelConfig(BaseModel):
     """Built-in channel configs; extra keys allowed for plugin channels."""
 
@@ -68,7 +62,6 @@ class ChannelConfig(BaseModel):
     dingtalk: DingTalkConfig = DingTalkConfig()
     feishu: FeishuConfig = FeishuConfig()
     qq: QQConfig = QQConfig()
-    console: ConsoleConfig = ConsoleConfig()
 
 
 class LastApiConfig(BaseModel):
@@ -194,5 +187,4 @@ ChannelConfigUnion = Union[
     DingTalkConfig,
     FeishuConfig,
     QQConfig,
-    ConsoleConfig,
 ]

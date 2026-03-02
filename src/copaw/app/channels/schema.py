@@ -34,14 +34,13 @@ BUILTIN_CHANNEL_TYPES = (
     "dingtalk",
     "feishu",
     "qq",
-    "console",
 )
 
 # ChannelType is str to allow plugin channels; built-in set above.
 ChannelType = str
 
 # Default channel when none is specified (runner / config).
-DEFAULT_CHANNEL: ChannelType = "console"
+DEFAULT_CHANNEL: ChannelType = "dingtalk"
 
 
 @runtime_checkable
