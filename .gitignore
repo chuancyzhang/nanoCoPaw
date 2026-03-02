@@ -4,31 +4,18 @@
 /.pnp
 .pnp.js
 node_modules/
-sessions_mount_dir/
 
 # testing
 /coverage
 
-# cookbook
-cookbook/_build
-
 # production
 /build
 dist/
-# Console frontend build (generated in Docker/CI, do not commit)
-src/copaw/console/dist/
-
-# frontend (website)
-website/node_modules/
-website/.vite/
-website/tsconfig.tsbuildinfo
-website/dist/
 
 # misc
 .env
 .env.*
 providers.json
-envs.json
 !.env.example
 !.env.template
 __pycache__/
@@ -52,6 +39,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 openapi-ts*.log
+logs/
+*.log
 
 # MacOS
 .DS_Store
@@ -70,11 +59,6 @@ Desktop.ini
 uv.lock
 venv/
 .venv/
-providers.json
-
-# Logs
-logs/
-*.log
 
 # vibe coding
 .claude
