@@ -12,10 +12,7 @@ import shutil
 import asyncio
 from typing import Any, Dict, Optional
 
-from agentscope_runtime.engine.schemas.agent_schemas import (
-    TextContent,
-    ContentType,
-)
+from ...runner.schemas import TextContent, ContentType
 
 from ....config.config import IMessageChannelConfig
 

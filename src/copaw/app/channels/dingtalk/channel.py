@@ -29,7 +29,7 @@ from urllib.parse import urlparse
 import aiohttp
 import dingtalk_stream
 from dingtalk_stream import ChatbotMessage
-from agentscope_runtime.engine.schemas.agent_schemas import RunStatus
+from ...runner.schemas import RunStatus
 
 from ..utils import file_url_to_local_path
 from ....config.config import DingTalkConfig as DingTalkChannelConfig
@@ -57,7 +57,7 @@ from . import markdown as dingtalk_markdown
 from .utils import guess_suffix_from_file_content
 
 if TYPE_CHECKING:
-    from agentscope_runtime.engine.schemas.agent_schemas import AgentRequest
+    from ...runner.schemas import AgentRequest
 
 logger = logging.getLogger(__name__)
 

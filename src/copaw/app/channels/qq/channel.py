@@ -20,11 +20,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from agentscope_runtime.engine.schemas.agent_schemas import (
-    RunStatus,
-    TextContent,
-    ContentType,
-)
+from ...runner.schemas import RunStatus, TextContent, ContentType
 
 from ....config.config import QQConfig as QQChannelConfig
 

@@ -1,7 +1,7 @@
 import asyncio
 from getpass import getpass
 
-from .config import load_config, set_runtime_config
+from .config import get_config_path, load_config, save_config, set_runtime_config
 from .providers import list_providers, update_provider_settings, set_active_llm
 from .app.channels import ChannelManager
 from .app.channels.utils import make_process_from_runner
@@ -71,6 +71,7 @@ def _configure_channels() -> None:
         ch.poll_sec = float(_ask_text("iMessage Poll Sec", str(ch.poll_sec)))
 
     set_runtime_config(config)
+    save_config(config)
 
 
 def _configure_llm() -> None:
@@ -121,8 +122,13 @@ async def _run_channels() -> None:
 
 def main() -> None:
     print("nanoCoPaw 二进制启动配置")
-    _configure_llm()
-    _configure_channels()
+    config_path = get_config_path()
+    if config_path.is_file():
+        config = load_config()
+        set_runtime_config(config)
+    else:
+        _configure_llm()
+        _configure_channels()
     print("已启动，使用 Ctrl+C 退出")
     try:
         asyncio.run(_run_channels())

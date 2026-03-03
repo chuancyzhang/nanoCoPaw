@@ -8,7 +8,7 @@ import asyncio
 from typing import Any, Optional
 
 import aiohttp
-from agentscope_runtime.engine.schemas.agent_schemas import (
+from ...runner.schemas import (
     TextContent,
     ImageContent,
     VideoContent,

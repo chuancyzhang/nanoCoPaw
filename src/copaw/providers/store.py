@@ -13,6 +13,7 @@ from .models import (
     ProvidersData,
     ResolvedModelConfig,
 )
+from ..constant import WORKING_DIR
 from .registry import PROVIDERS
 
 _PROVIDERS_DIR = Path(__file__).resolve().parent
@@ -20,7 +21,7 @@ _PROVIDERS_JSON = _PROVIDERS_DIR / "providers.json"
 
 
 def get_providers_json_path() -> Path:
-    return _PROVIDERS_JSON
+    return WORKING_DIR.joinpath("providers.json")
 
 
 def _ensure_base_url(settings: ProviderSettings, defn) -> None:
@@ -95,6 +96,13 @@ def load_providers_json(path: Optional[Path] = None) -> ProvidersData:
     """Load providers.json, creating/repairing as needed."""
     if path is None:
         path = get_providers_json_path()
+    legacy_path = _PROVIDERS_JSON
+    if not path.is_file() and legacy_path.is_file():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            path.write_text(legacy_path.read_text(encoding="utf-8"), encoding="utf-8")
+        except Exception:
+            pass
 
     providers: dict[str, ProviderSettings] = {}
     active_llm = ModelSlotConfig()

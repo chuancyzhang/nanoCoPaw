@@ -13,9 +13,7 @@ from .models import (
 )
 from .registry import (
     PROVIDERS,
-    get_chat_model_class,
     get_provider,
-    get_provider_chat_model,
     list_providers,
 )
 from .store import (
@@ -37,9 +35,7 @@ __all__ = [
     "ProvidersData",
     "ResolvedModelConfig",
     "PROVIDERS",
-    "get_chat_model_class",
     "get_provider",
-    "get_provider_chat_model",
     "list_providers",
     "get_active_llm_config",
     "load_providers_json",

@@ -20,7 +20,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from agentscope_runtime.engine.schemas.agent_schemas import (
+from ..runner.schemas import (
     RunStatus,
     ContentType,
     TextContent,
@@ -44,11 +44,7 @@ OnReplySent = Optional[Callable[[str, str, str], None]]
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from agentscope_runtime.engine.schemas.agent_schemas import (
-        AgentRequest,
-        AgentResponse,
-        Event,
-    )
+    from ..runner.schemas import AgentRequest, AgentResponse, Event
 
 # process: accepts AgentRequest, streams Event
 # (including message events with status completed)
@@ -284,11 +280,7 @@ class BaseChannel(ABC):
         Use agentscope_runtime Message/Content types; no intermediate envelope.
         Subclasses call this after parsing native payload to content_parts.
         """
-        from agentscope_runtime.engine.schemas.agent_schemas import (
-            AgentRequest,
-            Message,
-            Role,
-        )
+        from ..runner.schemas import AgentRequest, Message, Role
 
         if not content_parts:
             content_parts = [

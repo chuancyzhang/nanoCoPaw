@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -76,6 +77,15 @@ def get_heartbeat_query_path() -> Path:
 
 
 def load_config(config_path: Optional[Path] = None) -> Config:
+    path = config_path or get_config_path()
+    if path.is_file():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            config = Config.model_validate(raw)
+            return config
+        except (json.JSONDecodeError, ValueError):
+            pass
     return _RUNTIME_CONFIG.model_copy(deep=True)
 
 
@@ -85,7 +95,10 @@ def set_runtime_config(config: Config) -> None:
 
 
 def save_config(config: Config, config_path: Optional[Path] = None) -> None:
-    return None
+    path = config_path or get_config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(config.model_dump(mode="json"), f, ensure_ascii=False, indent=2)
 
 
 def get_heartbeat_config() -> HeartbeatConfig:
@@ -93,4 +106,3 @@ def get_heartbeat_config() -> HeartbeatConfig:
     config = load_config()
     hb = config.agents.defaults.heartbeat
     return hb if hb is not None else HeartbeatConfig()
-

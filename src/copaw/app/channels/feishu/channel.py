@@ -36,8 +36,7 @@ from lark_oapi.api.im.v1 import (
     Emoji,
     P2ImMessageReceiveV1,
 )
-from agentscope_runtime.engine.schemas.agent_schemas import (
-    # AudioContent,
+from ...runner.schemas import (
     FileContent,
     ImageContent,
     TextContent,
@@ -70,7 +69,7 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
-    from agentscope_runtime.engine.schemas.agent_schemas import AgentRequest
+    from ...runner.schemas import AgentRequest
 
 logger = logging.getLogger(__name__)
 
@@ -195,9 +194,7 @@ class FeishuChannel(BaseChannel):
         native_payload: Any,
     ) -> "AgentRequest":
         """Build AgentRequest from Feishu native dict (content_parts)."""
-        from agentscope_runtime.engine.schemas.agent_schemas import (
-            AgentRequest,
-        )
+        from ...runner.schemas import AgentRequest
 
         payload = native_payload if isinstance(native_payload, dict) else {}
         channel_id = payload.get("channel_id") or self.channel
@@ -462,6 +459,18 @@ class FeishuChannel(BaseChannel):
             self._on_message(data),
             self._loop,
         )
+
+    def _on_reaction_sync(self, data: Any) -> None:
+        return None
+
+    def _on_chat_entered_sync(self, data: Any) -> None:
+        return None
+
+    def _on_unknown_event_sync(self, data: Any) -> None:
+        return None
+
+    def _on_message_read_sync(self, data: Any) -> None:
+        return None
 
     async def _on_message(self, data: "P2ImMessageReceiveV1") -> None:
         """Handle one Feishu message: dedup, parse, download media, enqueue."""
@@ -1557,14 +1566,30 @@ class FeishuChannel(BaseChannel):
             .log_level(lark.LogLevel.INFO)
             .build()
         )
-        event_handler = (
-            lark.EventDispatcherHandler.builder(
-                self.encrypt_key,
-                self.verification_token,
+        handler_builder = lark.EventDispatcherHandler.builder(
+            self.encrypt_key,
+            self.verification_token,
+        ).register_p2_im_message_receive_v1(self._on_message_sync)
+        if hasattr(handler_builder, "register_im_message_reaction_created_v1"):
+            handler_builder = handler_builder.register_im_message_reaction_created_v1(
+                self._on_reaction_sync,
             )
-            .register_p2_im_message_receive_v1(self._on_message_sync)
-            .build()
-        )
+        if hasattr(
+            handler_builder,
+            "register_im_chat_access_event_bot_p2p_chat_entered_v1",
+        ):
+            handler_builder = handler_builder.register_im_chat_access_event_bot_p2p_chat_entered_v1(
+                self._on_chat_entered_sync,
+            )
+        if hasattr(handler_builder, "register_default_handler"):
+            handler_builder = handler_builder.register_default_handler(
+                self._on_unknown_event_sync,
+            )
+        if hasattr(handler_builder, "register_im_message_message_read_v1"):
+            handler_builder = handler_builder.register_im_message_message_read_v1(
+                self._on_message_read_sync,
+            )
+        event_handler = handler_builder.build()
         self._ws_client = lark.ws.Client(
             self.app_id,
             self.app_secret,
